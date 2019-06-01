@@ -1,0 +1,34 @@
+branches:
+  only:
+    - ci
+
+image: Visual Studio 2017
+
+environment:
+  APPVEYOR_SKIP_FINALIZE_ON_EXIT: true
+
+init:
+- ps: Update-AppveyorBuild -Version "$(Get-Date -format yyyy.MM.dd):$env:appveyor_build_number"
+
+build:
+  verbosity: minimal
+
+after_build:
+- cd %APPVEYOR_BUILD_FOLDER%\OtogiCI\bin\Debug
+- OtogiCI.exe
+- if exist Newest appveyor exit
+
+artifacts:
+- path: OtogiCI\bin\Debug\Web
+
+on_success:
+- git config --global credential.helper store
+- ps: Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:TOKEN):x-oauth-basic@github.com`n"
+- git config --global user.email "idk@baidu.com"
+- git config --global user.name "Who Care?"
+- git clone --depth 5 -q --branch=%BRANCH% %REPO% %APPVEYOR_BUILD_FOLDER%\Web
+- ps: Copy-Item $env:APPVEYOR_BUILD_FOLDER\OtogiCI\bin\Debug\Web\* $env:APPVEYOR_BUILD_FOLDER\Web -Recurse -Force
+- cd %APPVEYOR_BUILD_FOLDER%\Web
+- git add .
+- ps: git commit -m "update $(Get-Date -format yyyy.MM.dd)"
+- git push origin %BRANCH%

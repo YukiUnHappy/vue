@@ -1,0 +1,4 @@
+language: csharp
+solution: CI-Test.sln
+mono:
+  - latest
