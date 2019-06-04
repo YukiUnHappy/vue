@@ -18,6 +18,10 @@ namespace OtogiCI
             var html = webClient.DownloadString("http://otogi-api.trafficmanager.net/Content/Atom?adult=True");
 
             var match = Regex.Match(html, "codeUrl: \"(.+?Release(\\d+).+?)\",");
+
+            if (!match.Success)
+                throw new Exception("The server maybe under maintenance");
+
             var url = match.Groups[1].Value + "gz";
             var sVer = match.Groups[2].Value;
 
@@ -81,6 +85,9 @@ namespace OtogiCI
                 l.Add(i);
             }
 
+            if (l.Count < 4)
+                throw new Exception("Mismatch the count, maybe something change?");
+
             var nsb = new StringBuilder();
 
             var rlp = new List<KeyValuePair<int, int>>();
@@ -88,17 +95,86 @@ namespace OtogiCI
 
             foreach (var i in l)
             {
-                if (i == p)
+                if (i == p)  //Old HScene Spine Load (Still::SetStill)
                 {
+                    var ii = p - 1000;
 
+                    //Find out the start of .Still::SetStill(System.Action ac)
+                    var pFunc = BoyerMooreHorspool.Find(js, "function ", ii);
+                    while (pFunc < i)
+                    {
+                        var te = BoyerMooreHorspool.Find(js, "function ", pFunc + 1);
+                        if (te > i)
+                            break;
+                        pFunc = te;
+                    }
+
+                    //Find out the variables
+                    var pVar = BoyerMooreHorspool.Find(js, "var ", pFunc + 1);
+
+                    //Insert two variables
+                    rlp.Add(new KeyValuePair<int, int>(pVar + 4, 0));
+                    rls.Add("m=0,n=0,");
+
+
+                    //Find out the if(Application.isEditor && ...
+                    var pIf = BoyerMooreHorspool.Find(js, "if(", pFunc + 1);
+                    while (pIf < i)
+                    {
+                        var te = BoyerMooreHorspool.Find(js, "if(", pIf + 1);
+                        if (te > i)
+                            break;
+                        pIf = te;
+                    }
+
+                    if (js.Substring(pIf + 6, 9) != "(0,0)|0?(")
+                        throw new Exception("Pattern A mismatch");
+
+                    //Replace true
+                    rlp.Add(new KeyValuePair<int, int>(pIf + 3, 8));
+                    rls.Add("1");
+
+
+                    //Find Hack Point
+                    ii = BoyerMooreHorspool.Find(js, k, pIf + 1);  //f3D(0,YUx(G_x(w0D(h,0)|0,0)|0,0)|0,0)|0,0);
+
+                    var o = js.Substring(ii + 14, 8);  //w0D(h,0)
+
+                    //Insert hack
+                    rlp.Add(new KeyValuePair<int, int>(ii - 6, 0));
+                    rls.Add($"m={k2}{o}|0,0)|0,0)|0;if(!(n|0)?(c[m+8>>2]|0)==14:0)n=m;if(n|0?(c[m+8>>2]|0)==15:0)m=n;");
+
+                    /*
+                     * if (keep == null && str.Length == 14) //Spine/Skeleton
+                     *      keep = str;
+                     * if (keep != null && str.Length == 15) //Ist/MosaicField
+                     *      str = keep;
+                     */
+
+                    if (js.Substring(ii + 6 + 26, 5) != "|0,0)")
+                        throw new Exception("Pattern B mismatch");
+
+                    //Replace m
+                    rlp.Add(new KeyValuePair<int, int>(ii + 6, 26));
+                    rls.Add("m");
                 }
-                else
+                else  //New HScene Spine Load (ResourceManager::LoadCacheGameEffect,ResourceManager::LoadGameEffect,ResourceManager::LoadGameSpine)
                 {
-                    var h = js.Substring(i - 6, 6);
+                    var h = js.Substring(i - 6, 6);  //H_x(b,
                     var o =
-                        $"var d=0,e=0;d={k2}b,0)|0,0)|0;if((f[d+8>>2]|0)==20){{f[d+8>>2]=14;e=1;}}{h}{k1}0,d|0,0)|0,0);if(e)f[d+8>>2]=20;";
+                        $"var d=0,e=0;d={k2}b,0)|0,0)|0;if((f[d+8>>2]|0)==20){{f[d+8>>2]=14;e=1;}}{h}{k1}0,d|0,0)|0,0);if(e|0)f[d+8>>2]=20;";
 
-                    rlp.Add(new KeyValuePair<int, int>(i - 6, 40));
+                    /*
+                     * if (str.Length == 20) { //Spine/SkeletonMosaic
+                     *      str.Length = 14;   //Spine/Skeleton
+                     *      changed = true;
+                     * }
+                     * DoSomething();
+                     * if (changed)
+                     *      str.Length = 20;
+                     */
+
+                    rlp.Add(new KeyValuePair<int, int>(i - 6, 40));  //H_x(b,f3D(0,YUx(G_x(b,0)|0,0)|0,0)|0,0);
                     rls.Add(o);
                 }
             }
@@ -140,7 +216,7 @@ namespace OtogiCI
         {
             using (var ret = new MemoryStream())
             {
-                using (var gzip = new GZipStream(ret, CompressionMode.Compress))
+                using (var gzip = new GZipStream(ret, CompressionLevel.Optimal))
                 {
                     new MemoryStream(data).CopyTo(gzip);
                 }
