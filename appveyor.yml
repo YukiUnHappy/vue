@@ -30,5 +30,5 @@ on_success:
 - ps: Copy-Item $env:APPVEYOR_BUILD_FOLDER\OtogiCI\bin\Debug\Web\* $env:APPVEYOR_BUILD_FOLDER\Web -Recurse -Force
 - cd %APPVEYOR_BUILD_FOLDER%\Web
 - git add .
-- ps: git commit -m "update $(Get-Date -format yyyy.MM.dd)"
-- git push origin %BRANCH%
+- ps: git commit -m "update $(Get-Date -format yyyy.MM.dd)" -q
+- git push origin %BRANCH% -q
