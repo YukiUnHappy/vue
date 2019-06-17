@@ -27,7 +27,7 @@ namespace OtogiCI
 
             Console.WriteLine($"Server Ver:{sVer}");
 
-            var lVer = webClient.DownloadString("https://otogi.dmmowari.cf/ver");
+            var lVer = webClient.DownloadString("https://otogi.dmmowari.ga/ver");
             Console.WriteLine($"Local Ver:{lVer}");
 
             if (lVer == sVer)
