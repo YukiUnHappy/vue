@@ -15,7 +15,7 @@ namespace OtogiCI
         {
             var webClient = new WebClient();
 
-            var html = webClient.DownloadString("http://otogi-api.trafficmanager.net/Content/Atom?adult=True");
+            var html = webClient.DownloadString("https://api-pc.otogi-frontier.com/Content/Atom?adult=True");
 
             var match = Regex.Match(html, "codeUrl: \"(.+?Release(\\d+).+?)\",");
 
