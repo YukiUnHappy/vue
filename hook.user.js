@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         OtogiFrontierHook
-// @version      1.2
+// @version      1.3
 // @description  Mosaic No, Uncensored Yes.
 // @icon         https://www.dmm.co.jp/favicon.ico
 // @author       Yuki
-// @match        http://otogi-api.trafficmanager.net/Content/Atom*
+// @match        https://api-pc.otogi-frontier.com/Content/Atom*
 // @run-at       document-start
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xhook/1.4.9/xhook.min.js
